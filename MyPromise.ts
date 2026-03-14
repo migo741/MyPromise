@@ -13,6 +13,31 @@ function isFunction(x) {
 function isThenable(x) {
   return (isObject(x) || isFunction(x)) && typeof x.then === "function";
 }
+function resolvePromise(prom, x) {
+  if (prom.state !== promiseState.PENDING) return;
+
+  if (isThenable(x)) {
+    // 1. x和prom是同一个东西
+    if (x === prom) {
+      rejectedPromise(prom, new TypeError("error"));
+      return;
+    }
+    // 2. prom吸收x的状态
+    queueMicrotask(() => {
+      x.then(
+        (data) => {
+          resolvePromise(prom, data);
+        },
+        (err) => {
+          rejectedPromise(prom, err);
+        }
+      );
+    });
+  } else {
+    prom.state = promiseState.FULFILLED;
+    prom.data = x;
+  }
+}
 
 function rejectedPromise(prom, reason) {
   if (prom.state !== promiseState.PENDING) return;
@@ -20,19 +45,9 @@ function rejectedPromise(prom, reason) {
   prom.state = promiseState.REJECTED;
   prom.reason = reason;
 }
-function resolvePromise(prom, x) {
-  if (prom.state !== promiseState.PENDING) return;
-
-  if (isThenable(x)) {
-    if (x === prom) rejectedPromise(prom, new TypeError("error"));
-  } else {
-    prom.state = promiseState.FULFILLED;
-    prom.data = x;
-  }
-}
 
 class MyPromise {
-  private state = promiseState.PENDING; // 'pending' | 'fulfilled | 'rejected'
+  #state = promiseState.PENDING; // 'pending' | 'fulfilled | 'rejected'
   private data = undefined; // 成功的数据
   private reason = undefined; // 失败的数据
 
