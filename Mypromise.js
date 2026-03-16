@@ -43,10 +43,10 @@ class MyPromise {
         this.#onReject.push(() => rejectedFn(this.#error));
       }
       if (this.#state === "fulfilled") {
-        fulfilledFn();
+        queueMicrotask(() => fulfilledFn());
       }
       if (this.#state === "rejected") {
-        rejectedFn();
+        queueMicrotask(() => rejectedFn());
       }
     });
   }
